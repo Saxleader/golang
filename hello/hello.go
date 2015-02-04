@@ -1,11 +1,11 @@
 package main
 
 import (
-		"fmt"
+	"fmt"
 
-		"github.com/Saxleader/golang/stringutil"
+	"github.com/Saxleader/golang/stringutil"
 )
 
 func main() {
-    fmt.Printf(stringutil.Reverse("!oG ,olleH"))
+	fmt.Printf(stringutil.Reverse("!oG ,olleH"))
 }
