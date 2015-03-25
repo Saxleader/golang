@@ -57,8 +57,11 @@ func results(rw http.ResponseWriter, req *http.Request) {
 
 	json.Unmarshal(body, &res)
 
+	var temp string
+
 	for i, _ := range res["messages"] {
-		append(mysearch.Emails, res["messages"][i]["id"])
+		temp, _ = res["messages"][i]["id"]
+		append(mysearch.Emails, temp)
 	}
 
 	var myemails []string
