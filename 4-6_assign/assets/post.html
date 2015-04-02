@@ -1,0 +1,19 @@
+{{define "Post"}}
+<!DOCTYPE html>
+<html>
+	
+	<head>
+		<meta charset="UTF-8">
+		<title>{{.Title}}</title>
+	</head>
+
+	<body>
+		{{range .Posts}}
+			<p><b>{{.Author}}</b> wrote:</p><p><i>posted on {{.PostDate}}</i></p>
+			{{.Message}}
+			{{if .UpdateDate}}<p><i>updated on {{.}}</i></p>{{end}}
+		{{end}}
+	</body>
+
+</html>
+{{end}}
