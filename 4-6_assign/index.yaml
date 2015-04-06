@@ -14,20 +14,9 @@ indexes:
   properties:
   - name: OP
   - name: PostDate
-
-- kind: post
-  properties:
-  - name: OP
-  - name: PostDate
     direction: desc
 
 - kind: post
   ancestor: yes
   properties:
   - name: PostDate
-
-- kind: post
-  ancestor: yes
-  properties:
-  - name: PostDate
-    direction: desc

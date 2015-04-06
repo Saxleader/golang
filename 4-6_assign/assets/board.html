@@ -12,7 +12,7 @@
 		<p>Browse the following posts.</p>
 		{{range .Thread}}
 		<form action="/viewthread" method="post">
-			<p>{{.Post.Message}} by: {{.Post.Author}} on:{{.Post.PostDate}} {{if .Post.UpdateDate}}updated on: {{.}}{{end}}</p>
+			<p>{{.Post.Message}} by: {{.Post.Author}} on:{{.Post.PostDate}} {{if .Post.UpdateDate}}updated on: {{.Post.UpdateDate}}{{end}}</p>
 			<input name="encoded_key" type="hidden" value="{{.ID}}">
 			<button type="submit">View Thread</button>
 		</form>

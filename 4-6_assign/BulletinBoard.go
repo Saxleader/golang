@@ -146,7 +146,7 @@ func editpost(rw http.ResponseWriter, req *http.Request) {
 			Parent  string
 		}{Title: title, Message: message, ID: s})
 	} else {
-		http.Redirect(rw, req, "/", http.StatusOK)
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
 	}
 }
 
@@ -240,12 +240,14 @@ func put(rw http.ResponseWriter, req *http.Request) {
 		}
 		t = time.Now().Format("Jan 2, 2006 3:04 PM")
 		ut = ""
+		req.Form.Set("encoded_key", k.Encode())
 	} else {
-		k, err := datastore.DecodeKey(s)
+		myk, err := datastore.DecodeKey(s)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		k = myk
 		mypost := Post{}
 		err = datastore.Get(c, k, &mypost)
 		if err != nil {
@@ -259,15 +261,15 @@ func put(rw http.ResponseWriter, req *http.Request) {
 
 	// data := url.Values{}
 	// data.Set("encoded_key", k.Encode())
-
+	// fmt.Fprintf(rw, "key: %v", k.Encode())
 	// r, _ := http.NewRequest("POST", "/view", bytes.NewBufferString(data.Encode()))
-
 	newpost := Post{Author: u.String(), Message: m, UpdateDate: ut, PostDate: t, OP: op}
 	_, err := datastore.Put(c, k, &newpost)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// http.Redirect(rw, r, "/view", http.StatusOK)
 	http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+	// http.Redirect(rw, req, "/view", http.StatusTemporaryRedirect)
+	// view(rw, req)
 }
