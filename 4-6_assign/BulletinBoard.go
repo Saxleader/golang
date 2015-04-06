@@ -26,7 +26,8 @@ type Thread struct {
 func init() {
 	http.Handle("/hiddenDir/", http.StripPrefix("/hiddenDir/", http.FileServer(http.Dir("assets/"))))
 	http.HandleFunc("/", board)
-	http.HandleFunc("/view/", viewthread)
+	http.HandleFunc("/viewthread", viewthread)
+	http.HandleFunc("/view", view)
 	http.HandleFunc("/edit", editpost)
 	http.HandleFunc("/create", createthread)
 	http.HandleFunc("/delete", deletepost)
@@ -62,7 +63,7 @@ func board(rw http.ResponseWriter, req *http.Request) {
 	// rw.WriteHeader(http.StatusFound)
 
 	posts := []Post{}
-	q := datastore.NewQuery("post").Filter("OP =", true)
+	q := datastore.NewQuery("post").Filter("OP =", true).Order("-PostDate")
 	k, err := q.GetAll(c, &posts)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -84,11 +85,11 @@ func board(rw http.ResponseWriter, req *http.Request) {
 }
 
 func viewthread(rw http.ResponseWriter, req *http.Request) {
-	s := req.FormValue("encoded_key")
-	view(rw, req, s)
+	http.Redirect(rw, req, "/view", http.StatusTemporaryRedirect)
 }
 
-func view(rw http.ResponseWriter, req *http.Request, s string) {
+func view(rw http.ResponseWriter, req *http.Request) {
+	s := req.FormValue("encoded_key")
 	c := appengine.NewContext(req)
 	k, err := datastore.DecodeKey(s)
 	if err != nil {
@@ -97,7 +98,7 @@ func view(rw http.ResponseWriter, req *http.Request, s string) {
 	}
 
 	posts := []Post{}
-	q := datastore.NewQuery("post").Ancestor(k).Order("-PostDate")
+	q := datastore.NewQuery("post").Ancestor(k).Order("PostDate")
 	keys, err := q.GetAll(c, &posts)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -143,9 +144,10 @@ func editpost(rw http.ResponseWriter, req *http.Request) {
 			Message string
 			ID      string
 			Parent  string
-		}{Title: title, Message: message, ID: s, Parent: req.FormValue("parent_key")})
+		}{Title: title, Message: message, ID: s})
+	} else {
+		http.Redirect(rw, req, "/", http.StatusOK)
 	}
-	return
 }
 
 func deletepost(rw http.ResponseWriter, req *http.Request) {
@@ -183,8 +185,10 @@ func deletepost(rw http.ResponseWriter, req *http.Request) {
 				return
 			}
 		}
+		// 	http.Redirect(rw, req, "/view", http.StatusTemporaryRedirect)
+		// } else {
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
 	}
-	http.Redirect(rw, req, "/", http.StatusOK)
 }
 
 func createthread(rw http.ResponseWriter, req *http.Request) {
@@ -214,10 +218,12 @@ func put(rw http.ResponseWriter, req *http.Request) {
 	u := user.Current(c)
 	m := req.FormValue("message")
 	s := req.FormValue("encoded_key")
+	// fmt.Fprintf(rw, "Key 1: %v", s)
 	p := req.FormValue("parent_key")
 	var t, ut string
 	var op bool
 	var k *datastore.Key
+
 	// make/decode keys
 	if s == "" {
 		if p == "" {
@@ -251,11 +257,17 @@ func put(rw http.ResponseWriter, req *http.Request) {
 		op = mypost.OP
 	}
 
-	var newpost = Post{Author: u.String(), Message: m, UpdateDate: ut, PostDate: t, OP: op}
-	mykey, err := datastore.Put(c, k, &newpost)
+	// data := url.Values{}
+	// data.Set("encoded_key", k.Encode())
+
+	// r, _ := http.NewRequest("POST", "/view", bytes.NewBufferString(data.Encode()))
+
+	newpost := Post{Author: u.String(), Message: m, UpdateDate: ut, PostDate: t, OP: op}
+	_, err := datastore.Put(c, k, &newpost)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	view(rw, req, mykey.Encode())
+	// http.Redirect(rw, r, "/view", http.StatusOK)
+	http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
 }

@@ -11,7 +11,7 @@
 		<h3>Welcome to the Bulletin Board, {{.User}}</h3>
 		<p>Browse the following posts.</p>
 		{{range .Thread}}
-		<form action="/view" method="post">
+		<form action="/viewthread" method="post">
 			<p>{{.Post.Message}} by: {{.Post.Author}} on:{{.Post.PostDate}} {{if .Post.UpdateDate}}updated on: {{.}}{{end}}</p>
 			<input name="encoded_key" type="hidden" value="{{.ID}}">
 			<button type="submit">View Thread</button>
