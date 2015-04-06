@@ -15,14 +15,23 @@ type Post struct {
 	Message    string
 	UpdateDate string
 	PostDate   string
-	Updated    bool
+	OP         bool
+}
+
+type Thread struct {
+	Post Post
+	ID   string
 }
 
 func init() {
 	http.Handle("/hiddenDir/", http.StripPrefix("/hiddenDir/", http.FileServer(http.Dir("assets/"))))
 	http.HandleFunc("/", board)
-	http.HandleFunc("/view/", viewpost)
+	http.HandleFunc("/view/", viewthread)
 	http.HandleFunc("/edit", editpost)
+	http.HandleFunc("/create", createthread)
+	http.HandleFunc("/delete", deletepost)
+	http.HandleFunc("/post", createpost)
+	http.HandleFunc("/put", put)
 }
 
 // The following handlerfunc was my first option for login and authentication.
@@ -46,32 +55,207 @@ func init() {
 }*/
 
 func board(rw http.ResponseWriter, req *http.Request) {
-	rw.Header().Set("Content-type", "text/html")
+	// rw.Header().Set("Content-type", "text/html")
 	c := appengine.NewContext(req)
 	u := user.Current(c)
-	rw.Header().Set("Location", req.URL.String())
-	rw.WriteHeader(http.StatusFound)
+	// rw.Header().Set("Location", req.URL.String())
+	// rw.WriteHeader(http.StatusFound)
+
+	posts := []Post{}
+	q := datastore.NewQuery("post").Filter("OP =", true)
+	k, err := q.GetAll(c, &posts)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	threads := []Thread{}
+	for i, value := range posts {
+		threads = append(threads, Thread{value, k[i].Encode()})
+	}
+
 	t := template.Must(template.ParseFiles("assets/board.html"))
-	t.ExecuteTemplate(rw, "Board", u)
+	t.ExecuteTemplate(rw, "Board", struct {
+		User   string
+		Thread []Thread
+	}{
+		u.String(),
+		threads,
+	})
 }
 
-func viewpost(rw http.ResponseWriter, req *http.Request) {
+func viewthread(rw http.ResponseWriter, req *http.Request) {
+	s := req.FormValue("encoded_key")
+	view(rw, req, s)
+}
 
+func view(rw http.ResponseWriter, req *http.Request, s string) {
+	c := appengine.NewContext(req)
+	k, err := datastore.DecodeKey(s)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	posts := []Post{}
+	q := datastore.NewQuery("post").Ancestor(k).Order("-PostDate")
+	keys, err := q.GetAll(c, &posts)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	threads := []Thread{}
+
+	for i, value := range posts {
+		threads = append(threads, Thread{value, keys[i].Encode()})
+	}
+
+	t := template.Must(template.ParseFiles("assets/post.html"))
+	t.ExecuteTemplate(rw, "Post", struct {
+		Parent string
+		Thread []Thread
+	}{
+		s,
+		threads,
+	})
 }
 
 func editpost(rw http.ResponseWriter, req *http.Request) {
-
+	c := appengine.NewContext(req)
+	s := req.FormValue("encoded_key")
+	k, err := datastore.DecodeKey(s)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	mypost := Post{}
+	err = datastore.Get(c, k, &mypost)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if mypost.Author == user.Current(c).String() {
+		message := mypost.Message
+		title := "Edit a Post"
+		t := template.Must(template.ParseFiles("assets/edit.html"))
+		t.ExecuteTemplate(rw, "New", struct {
+			Title   string
+			Message string
+			ID      string
+			Parent  string
+		}{Title: title, Message: message, ID: s, Parent: req.FormValue("parent_key")})
+	}
+	return
 }
 
-func updatepost(rw http.ResponseWriter, req *http.Request) {
+func deletepost(rw http.ResponseWriter, req *http.Request) {
+	c := appengine.NewContext(req)
+	u := user.Current(c)
+	s := req.FormValue("encoded_key")
+	k, err := datastore.DecodeKey(s)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	mypost := Post{}
+	err = datastore.Get(c, k, &mypost)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if mypost.Author == u.String() {
+		if mypost.OP {
+			q := datastore.NewQuery("post").Ancestor(k).KeysOnly()
+			keys, err := q.GetAll(c, struct{}{})
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = datastore.DeleteMulti(c, keys)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			err := datastore.Delete(c, k)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+	http.Redirect(rw, req, "/", http.StatusOK)
+}
 
+func createthread(rw http.ResponseWriter, req *http.Request) {
+	title := "Create a Thread"
+	t := template.Must(template.ParseFiles("assets/edit.html"))
+	t.ExecuteTemplate(rw, "New", struct {
+		Title   string
+		Message string
+		ID      string
+		Parent  string
+	}{Title: title})
 }
 
 func createpost(rw http.ResponseWriter, req *http.Request) {
+	title := "Create a Post"
+	t := template.Must(template.ParseFiles("assets/edit.html"))
+	t.ExecuteTemplate(rw, "New", struct {
+		Title   string
+		Message string
+		ID      string
+		Parent  string
+	}{Title: title, Parent: req.FormValue("parent_key")})
+}
+
+func put(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
 	u := user.Current(c)
-	m := req.FormValue("Message")
-	t := time.Now().Format("Jan 2, 2006 3:04 PM")
-	var p = Post{Author: u.String(), Message: m, PostDate: t, Updated: false}
-	datastore.Put(c, datastore.NewIncompleteKey(c, "Post", nil), &p)
+	m := req.FormValue("message")
+	s := req.FormValue("encoded_key")
+	p := req.FormValue("parent_key")
+	var t, ut string
+	var op bool
+	var k *datastore.Key
+	// make/decode keys
+	if s == "" {
+		if p == "" {
+			k = datastore.NewIncompleteKey(c, "post", nil)
+			op = true
+		} else {
+			pk, err := datastore.DecodeKey(p)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			k = datastore.NewIncompleteKey(c, "post", pk)
+			op = false
+		}
+		t = time.Now().Format("Jan 2, 2006 3:04 PM")
+		ut = ""
+	} else {
+		k, err := datastore.DecodeKey(s)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		mypost := Post{}
+		err = datastore.Get(c, k, &mypost)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		ut = time.Now().Format("Jan 2, 2006 3:04 PM")
+		t = mypost.PostDate
+		op = mypost.OP
+	}
+
+	var newpost = Post{Author: u.String(), Message: m, UpdateDate: ut, PostDate: t, OP: op}
+	mykey, err := datastore.Put(c, k, &newpost)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	view(rw, req, mykey.Encode())
 }
