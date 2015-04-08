@@ -4,22 +4,43 @@
 	
 	<head>
 		<meta charset="UTF-8">
+		<link rel="stylesheet" type="text/css" href="/hiddenDir/mystyle.css">
 		<title>Thread</title>
 	</head>
 
 	<body>
 		{{range .Thread}}
-			<form method="post">
-				<p><b>{{.Post.Author}}</b> wrote:</p>
-				{{.Post.Message}}
-				<p><i>posted on {{.Post.PostDate}}</i></p>
-				{{if .Post.UpdateDate}}<p><i>updated on {{.Post.UpdateDate}}</i></p>{{end}}
+			<form class="post" method="post">
 				<input name="encoded_key" type="hidden" value={{.ID}}>
-				<button type="submit" formaction="/edit">Edit Post</button>
-				<button type="submit" formaction="/delete">Delete Post</button>
-				<p></p>
+				<div class="post_body">
+					<div class="post_info">
+						<div class="author">
+							<b>{{.Post.Author}}</b> wrote:
+						</div>
+						<div class="post_date">
+							<i>posted on {{.Post.PostDateStr}}</i>
+						</div>
+					</div>
+					<div class="message">
+						{{.Post.Message}}
+					</div>
+				</div>
+
+				<div class="post_footer">
+					<div class="post_buttons">
+						<button type="submit" formaction="/edit">Edit Post</button>
+						<button type="submit" formaction="/delete">Delete Post</button>
+					</div>
+
+					{{if .Post.UpdateDateStr}}
+					<div class="update_date">
+						<i>updated on {{.Post.UpdateDateStr}}</i>
+					</div>
+					{{end}}					
+				</div>
 			</form>
 		{{end}}
+
 		<form method="post" action="/post">
 			<input name="parent_key" type="hidden" value={{.Parent}}>
 			<button type="submit">New Post</button>

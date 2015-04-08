@@ -11,11 +11,13 @@ import (
 )
 
 type Post struct {
-	Author     string
-	Message    string
-	UpdateDate string
-	PostDate   string
-	OP         bool
+	Author        string
+	Message       string
+	UpdateDate    int64
+	UpdateDateStr string
+	PostDate      int64
+	PostDateStr   string
+	OP            bool
 }
 
 type Thread struct {
@@ -220,7 +222,8 @@ func put(rw http.ResponseWriter, req *http.Request) {
 	s := req.FormValue("encoded_key")
 	// fmt.Fprintf(rw, "Key 1: %v", s)
 	p := req.FormValue("parent_key")
-	var t, ut string
+	var t, ut int64
+	var ts, uts string
 	var op bool
 	var k *datastore.Key
 
@@ -238,10 +241,13 @@ func put(rw http.ResponseWriter, req *http.Request) {
 			k = datastore.NewIncompleteKey(c, "post", pk)
 			op = false
 		}
-		t = time.Now().Format("Jan 2, 2006 3:04 PM")
-		ut = ""
+		now := time.Now()
+		t = now.Unix()
+		ts = now.Format("Jan 2, 2006 3:04 PM")
+		uts = ""
 	} else {
-		k, err := datastore.DecodeKey(s)
+		myk, err := datastore.DecodeKey(s)
+		k = myk
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -252,8 +258,11 @@ func put(rw http.ResponseWriter, req *http.Request) {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		ut = time.Now().Format("Jan 2, 2006 3:04 PM")
+		now := time.Now()
+		ut = now.Unix()
+		uts = now.Format("Jan 2, 2006 3:04 PM")
 		t = mypost.PostDate
+		ts = mypost.PostDateStr
 		op = mypost.OP
 	}
 
@@ -262,7 +271,7 @@ func put(rw http.ResponseWriter, req *http.Request) {
 
 	// r, _ := http.NewRequest("POST", "/view", bytes.NewBufferString(data.Encode()))
 
-	newpost := Post{Author: u.String(), Message: m, UpdateDate: ut, PostDate: t, OP: op}
+	newpost := Post{Author: u.String(), Message: m, UpdateDate: ut, UpdateDateStr: uts, PostDate: t, PostDateStr: ts, OP: op}
 	_, err := datastore.Put(c, k, &newpost)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -270,4 +279,8 @@ func put(rw http.ResponseWriter, req *http.Request) {
 	}
 	// http.Redirect(rw, r, "/view", http.StatusOK)
 	http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+}
+
+func convert_time(year int, month int, day int, hour int, minute int, second int) {
+	return
 }
