@@ -6,12 +6,22 @@ import (
 	"html/template"
 	"log"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/urlfetch"
 	// "io/ioutil"
 	"net/http"
 )
+
+var conf = &oauth2.Config{
+	ClientID:	"506452277892-llq9dpqoq9hu7h1ma13e6r7mahndil60.apps.googleusercontent.com"
+	ClientSecret:	"swX-AIiOKwRyrEprbqMyfEZt"
+	Scopes:	[]string{"https://www.googleapis.com/auth/gmail.readonly"}
+	Endpoint: google.Endpoint,
+}
 
 type resultinput struct {
 	Search string
@@ -26,13 +36,6 @@ func init() {
 }
 
 func apiQuery(rw http.ResponseWriter, req *http.Request) {
-	url := `
-	https://accounts.google.com/o/oauth2/auth?
-	scope=https://www.googleapis.com/auth/gmail.readonly&
-	redirect_uri=https%3A%2F%2Fcurious-cistern-90523.appspot.com%2Fprocess&,
-	response_type=code&
-	client_id=506452277892-llq9dpqoq9hu7h1ma13e6r7mahndil60.apps.googleusercontent.com&
-	include_granted_scopes=true`
 
 	t := template.Must(template.ParseFiles("assets/apiQuery.html"))
 	err := t.ExecuteTemplate(rw, "apiQuery", url)
@@ -58,6 +61,8 @@ func process(rw http.ResponseWriter, req *http.Request) {
 
 func results(rw http.ResponseWriter, req *http.Request) {
 	var mysearch = resultinput{Search: req.FormValue("search")}
+
+	url := conf.AuthCodeURL(state, ...)
 
 	// safeAddr := url.QueryEscape(mysearch.Search)
 	// fullURL := fmt.Sprintf("https://www.googleapis.com/gmail/v1/users/me/messages?q=%s", mysearch)
