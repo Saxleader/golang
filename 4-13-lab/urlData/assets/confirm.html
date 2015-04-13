@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Confirmation</title>
+	</head>
+
+	<body>
+		<p>Is the following information correct:</p>
+		<p>Name: {{.Name}}</p>
+		<p>Age: {{.Age}}</p>
+		<a href="/welcome?name={{.Name}}&age={{.Age}}">Yes</a>
+		<a href="/edit?name={{.Name}}&age={{.Age}}">No</a>
+	</body>
+</html>

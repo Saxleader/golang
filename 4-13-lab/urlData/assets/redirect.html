@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Information Query</title>
+	</head>
+
+	<body>
+		<form action="/correct" method="POST">
+			<p><label>Name:</label>
+			<input name="name" placeholder="Enter your name here..." value="{{.Name}}"></input></p>
+			<p><label>Age:</label>
+			<input name="age" placeholder="Enter your age here..." value="{{.Age}}"></input></p>
+			<button type="submit">Submit</button>
+		</form>
+	</body>
+</html>
