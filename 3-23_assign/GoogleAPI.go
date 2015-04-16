@@ -5,23 +5,27 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-
+	"encoding/json"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/urlfetch"
-	// "io/ioutil"
+	"io/ioutil"
 	"net/http"
 )
 
+// Redirect URIs https://curious-cistern-90523.appspot.com/oauth2callback
+// Javascript Origins https://curious-cistern-90523.appspot.com
 var conf = &oauth2.Config{
-	ClientID:	"506452277892-llq9dpqoq9hu7h1ma13e6r7mahndil60.apps.googleusercontent.com"
-	ClientSecret:	"swX-AIiOKwRyrEprbqMyfEZt"
-	Scopes:	[]string{"https://www.googleapis.com/auth/gmail.readonly"}
+	ClientID:	"506452277892-0cqothcekkv904em09410b52iqngbd74.apps.googleusercontent.com"
+	ClientSecret:	"hRsmnCOhUnWvWieKNltXKXkT"
+	Scopes:	gmail.GmailReadonlyScope
 	Endpoint: google.Endpoint,
 }
+
+var mytmpl *template.Template
 
 type resultinput struct {
 	Search string
@@ -29,44 +33,48 @@ type resultinput struct {
 }
 
 func init() {
+	mytmpl = template.Must(template.ParseFiles("assets/apiQuery.html","assets/results.html"))
 	http.Handle("/hiddenDir/", http.StripPrefix("/hiddenDir/", http.FileServer(http.Dir("assets/"))))
 	http.HandleFunc("/", apiQuery)
 	http.HandleFunc("/result", results)
-	http.HandleFunc("/process", process)
 }
 
 func apiQuery(rw http.ResponseWriter, req *http.Request) {
-
-	t := template.Must(template.ParseFiles("assets/apiQuery.html"))
-	err := t.ExecuteTemplate(rw, "apiQuery", url)
+	err := mytmpl.ExecuteTemplate(rw, "apiQuery", nil)
 	if err != nil {
+		log.Printf("Error: %v", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func process(rw http.ResponseWriter, req *http.Request) {
-	err := req.URL.Query().Get("error")
-	if err != "" {
-		log.Fatalf("Unable to authenticate: %v", err)
-	}
-
-	code := req.URL.Query().Get("code")
-	if code == "" {
-		log.Fatal("Authentication Code Error")
-	}
-
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", urlStr, body)
-}
-
 func results(rw http.ResponseWriter, req *http.Request) {
-	var mysearch = resultinput{Search: req.FormValue("search")}
+	c := appengine.NewContext(req)
+	search := req.FormValue("search")
+	client := conf.Client(c, t)
+	resp, err := client.Get("https://www.googleapis.com/gmail/v1/me/userId/messages?q="+search)
+	if err != nil {
+		log.Printf("Client: %v", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
 
-	url := conf.AuthCodeURL(state, ...)
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("ReadAll: %v", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
+
+	var mymail gmail.ListMessagesResponse
+
+	err = json.Unmarshal(body, &mymail)
+	if err != nil {
+		log.Printf("JSON: %v", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
 
 	// safeAddr := url.QueryEscape(mysearch.Search)
 	// fullURL := fmt.Sprintf("https://www.googleapis.com/gmail/v1/users/me/messages?q=%s", mysearch)
-	c := appengine.NewContext(req)
 	// u, err := user.CurrentOAuth(c, "https://www.googleapis.com/auth/gmail.readonly")
 	// if err != nil {
 	// 	log.Fatalf("Unable to authenticate user: %v", err)
