@@ -7,9 +7,9 @@
 		<link rel="stylesheet" href="assets/style.css">
 	</head>
 	<body>
-		<h3>Here are your search results for {{.Search}}</h3>
-		<ul>{{range .Emails}}
-		<li><a href="{{.}}">{{.}}</a></li>
+		<h3>Here are your search results:</h3>
+		<ul>{{range .}}
+		<li><a href="https://mail.google.com/mail/u/0/#all/{{.ID}}">{{.ID}}</a></li>
 		{{end}}
 		</ul>
 	</body>
