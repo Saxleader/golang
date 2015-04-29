@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Practice Sessions</title>
+	</head>
+
+	<body>
+		{{if .User}}
+			<h3>Hello {{.User}}, welcome back:</h3>
+			<form method="POST" action="/store">
+				<labeL>My name is: </label>
+				<input name="name" required autofocus placeholder="Type name here..." value="{{.User}}"></input>
+				<labeL>I will remember: </label>
+				<input name="memo" required placeholder="Type memo here..." value="{{.Message}}"></input>
+				<button type="submit">Submit</button>
+				<button type="submit" formaction="/erase">Forget</button>
+			</form>
+		{{else}}
+			<h3>Welcome, Guest:</h3>
+			<form method="POST" action="/store">
+				<labeL>My name is: </label>
+				<input name="name" required autofocus placeholder="Type name here..."></input>
+				<labeL>I will remember: </label>
+				<input name="memo" required placeholder="Type memo here..."></input>
+				<button type="submit">Submit</button>
+			</form>
+		{{end}}
+	</body>
+</html>
